@@ -1,5 +1,7 @@
 #include "EasyBMP.h"
-
+#include <iostream>
+#include <string>
+#include <vector>
 using namespace std;
 
 template <typename T>
@@ -11,19 +13,46 @@ inline T extract_bits (const T v, const unsigned bstart, const unsigned blength)
 
 template <typename T>
 inline T set_bits (const T v, const unsigned bstart, const unsigned blength, const T bits) {
-	const T mask = ((1 << blength) - 1) << bstart; 
+	const T mask = ((1 << blength) - 1) << bstart;
 
 	return (v & ~mask) | (bits << bstart);
 }
 
-int hideMessage(BMP &image, const string &message)
+void hideMessage(BMP &image, const string &message, const vector<unsigned> &seed)
 {
 	int width = image.TellWidth();
     int height = image.TellHeight();
-	
-	
     
-   return 0;
+    int messageIndex = 0;
+    for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			RGBApixel pixel = image.GetPixel(x, y);
+			
+			if (messageIndex < message.length()) {
+				if (seed[messageIndex % seed.size()] == 1) {
+					char nextChar = message[messageIndex];
+
+					unsigned redValue = pixel.Red;
+					unsigned greenValue = pixel.Green;
+					unsigned blueValue = pixel.Blue;
+					
+					unsigned calc = (nextChar >> (messageIndex % 8) & 1);
+										
+					redValue = set_bits(redValue, 0, 1, calc);
+					greenValue = set_bits(greenValue, 0, 1, calc);
+					blueValue = set_bits(blueValue, 0, 1, calc);
+
+					pixel.Red = static_cast<ebmpBYTE>(redValue);
+					pixel.Green = static_cast<ebmpBYTE>(greenValue);
+					pixel.Blue = static_cast<ebmpBYTE>(blueValue);
+					
+					messageIndex++;
+
+					image.SetPixel(x, y, pixel);
+				}
+			}
+		}
+    }
 }
 
 int main() {
@@ -36,19 +65,11 @@ int main() {
     	cout << "imagem de entrada aberta com sucesso" << endl;
     }
     
-    BMP image_copy(image);
+    std::string message = "testeFoto";
     
-    unsigned x = 0;
-	x = set_bits(x, 1, 2, static_cast<unsigned>(0x01));
-	cout << x << endl;
-	unsigned y = 7; // 8 bits e multiplos de 7
-	y = extract_bits(y, static_cast<unsigned>(0x01),1);
-	cout << y << endl;
-    
-    cout << "copiando a imagem..." << endl;
-    //Copia Imagem
-    image_copy.WriteToFile("./sample/test_copy.bmp");
-    cout << "copiado com sucesso!" << endl;
+    vector<unsigned> seed = {1, 0, 1, 0, 1, 0, 1};
+
+    hideMessage(image, message, seed);
 
 	return 0;
 }
