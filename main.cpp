@@ -1,3 +1,4 @@
+
 #include "EasyBMP.h"
 
 #include <iostream>
@@ -34,74 +35,52 @@ inline T set_bits (const T v, const unsigned bstart, const unsigned blength, con
 
 
 
-void hideMessage(BMP &image, const string &message, const vector<unsigned> &seed)
-
-{
+void teste(BMP &image, const string &message, const int &seed) {
 
 	int width = image.TellWidth();
 
     int height = image.TellHeight();
     
     int messageIndex = 0;
-
-    for (int y = 0; y < height; ++y) {
-		for (int x = 0; x < width; ++x) {
-			RGBApixel pixel = image.GetPixel(x, y);
-			
-			if (messageIndex < message.length()) {
-				if (seed[messageIndex % seed.size()] == 1) {
-					char nextChar = message[messageIndex];
-
-					unsigned redValue = pixel.Red;
-					unsigned greenValue = pixel.Green;
-					unsigned blueValue = pixel.Blue;
-					
-					unsigned calc = (nextChar >> (messageIndex % 8) & 1);
-										
-					redValue = set_bits(redValue, 0, 1, calc);
-					greenValue = set_bits(greenValue, 0, 1, calc);
-					blueValue = set_bits(blueValue, 0, 1, calc);
-
-					pixel.Red = static_cast<ebmpBYTE>(redValue);
-					pixel.Green = static_cast<ebmpBYTE>(greenValue);
-					pixel.Blue = static_cast<ebmpBYTE>(blueValue);
-					
-					++messageIndex;
-
-				}
+    
+    while (messageIndex <= message.size()) {
+    
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				RGBApixel pixel = image.GetPixel(x, y);
+				unsigned char redBits = (message[messageIndex] >> seed) & 7;
+				
+				pixel.Red = set_bits(pixel.Red, 0, 1, redBits);
+				pixel.Green = set_bits(pixel.Green, 0, 1, redBits);
+				pixel.Blue = set_bits(pixel.Blue, 0, 1, redBits);
+				
 				image.SetPixel(x, y, pixel);
 			}
-			else {
-				break;
-			}
 		}
+		messageIndex++;    
     }
+	image.WriteToFile("./sample/testando.bmp");
 }
 
-string showMessage(const vector<unsigned> &seed, BMP &image)
+
+string showMessage(const int &seed, BMP &image)
 {
 	int width = image.TellWidth();
     int height = image.TellHeight();
+	string message;
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			RGBApixel pixel = image.GetPixel(x, y);
+			
+			unsigned extractedBitRed = extract_bits(pixel.Red, 0, 1);
+			unsigned extractedBitGreen = extract_bits(pixel.Green, 0, 1);
+			unsigned extractedBitBlue = extract_bits(pixel.Blue, 0, 1);
+			
+			
 
-    string extractedMessage;
-    int messageIndex = 0;
-
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            RGBApixel pixel = image.GetPixel(x, y);
-
-            if (messageIndex < seed.size()) {
-                if (seed[messageIndex % seed.size()] == 1) {
-                    unsigned extractedBit = extract_bits(pixel.Red, 0, 1);
-                    extractedMessage += static_cast<char>((extractedBit << (messageIndex % 8) & 1));
-                    cout << messageIndex << endl;
-                    messageIndex++;
-                }
-            }
-        }
-    }
-
-    return extractedMessage;
+		}
+	}
+	
 }
 
 
@@ -128,14 +107,26 @@ int main() {
 
     std::string message = "testeFoto";
     
-    vector<unsigned> seed = {1, 0, 1, 0, 1, 0, 1};
-
-    hideMessage(image, message, seed);
+    int seed = 5;
 	
-	string extractedMessage = showMessage(seed, image);
-    cout << "Mensagem extraída: " << extractedMessage << endl;
+	teste(image, message, seed);
+	
+	if (!image.ReadFromFile("./sample/testando.bmp")) {
+
+        cerr << "Erro ao reescrever a mensagem de entrada." << endl;
+
+        return 1;
+
+    } else {
+
+    	cout << "mensagem de entrada aberta com sucesso" << endl;
+
+    }
+
+
+	string teste = showMessage(seed, image);
+	cout << teste;
 
 	return 0;
 
 }
-
