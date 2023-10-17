@@ -46,55 +46,72 @@ void hideMessage(BMP &image, const string &message, const int seed) {
     
     std::uniform_int_distribution<int> distributionComponent(0,2);
 	std::uniform_int_distribution<int> distributionBit(0,7);
+	
+	uint32_t messageSize = message.size();
+	 
+	for (int i = 0; i < sizeof(messageSize); i++) {
+        for (int j = 0; j < 8; j++) {
+            unsigned bitMessage = extract_bits(messageSize, i * 8 + j, 1);
+
+            int x = pixelId % width;
+            int y = pixelId / width;
+
+            int component = distributionComponent(rg);
+            ebmpBYTE *byte;
+            RGBApixel pixel = image.GetPixel(x, y);
+
+            switch (component) {
+            case 0:
+                byte = &pixel.Red;
+                break;
+            case 1:
+                byte = &pixel.Green;
+                break;
+            case 2:
+                byte = &pixel.Blue;
+                break;
+            }
+            int bitPosition = distributionBit(rg);
+            *byte = set_bits(*byte, bitPosition, 1, static_cast<ebmpBYTE>(bitMessage));
+            image.SetPixel(x, y, pixel);
+
+            pixelId++;
+        }
+    }
 
     for (int messageIndex = 0; messageIndex < message.size(); messageIndex++) {
-    	for(int i = 0; i < 8; i++){
-    	
-    		unsigned bitMessage = extract_bits(message[messageIndex], i, 1);
-    		
-    		cout << bitMessage;
-    		
-			int x = pixelId % width;
-			int y = pixelId / width;
-			
-			int component = distributionComponent(rg);
-			
-			ebmpBYTE* byte;
-			
-			RGBApixel pixel = image.GetPixel(x, y);
-			
-			switch (component) {
-			
-				case 0:
-					byte = &pixel.Red;
-					break;
-					
-				case 1:
-					byte = &pixel.Green;
-					break;
-				
-				case 2:
-					byte = &pixel.Blue;
-					break;
-			}
-			
-			int bitPosition = distributionBit(rg);
+        for (int i = 0; i < 8; i++) {
+            unsigned bitMessage = extract_bits(message[messageIndex], i, 1);
 
+            int x = pixelId % width;
+            int y = pixelId / width;
 
-			
-			*byte = set_bits(*byte, bitPosition, 1, static_cast<ebmpBYTE>(bitMessage));
-			
-			image.SetPixel(x, y, pixel);
-    		
-    		pixelId++;
-    	}
-    	
+            int component = distributionComponent(rg);
+            ebmpBYTE *byte;
+            RGBApixel pixel = image.GetPixel(x, y);
+
+            switch (component) {
+            case 0:
+                byte = &pixel.Red;
+                break;
+            case 1:
+                byte = &pixel.Green;
+                break;
+            case 2:
+                byte = &pixel.Blue;
+                break;
+            }
+            int bitPosition = distributionBit(rg);
+            *byte = set_bits(*byte, bitPosition, 1, static_cast<ebmpBYTE>(bitMessage));
+            image.SetPixel(x, y, pixel);
+
+            pixelId++;
+        }
     }
 	image.WriteToFile("./sample/testando.bmp");
-	cout << endl;
 }
 
-string showMessage(const int seed, BMP &image, const int messageSize)
+string showMessage(const int seed, BMP &image)
 {
 	int width = image.TellWidth();
 
@@ -110,50 +127,73 @@ string showMessage(const int seed, BMP &image, const int messageSize)
     
     std::uniform_int_distribution<int> distributionComponent(0,2);
 	std::uniform_int_distribution<int> distributionBit(0,7);
+	
+	uint32_t messageSize = 0;
+	
+    for (int i = 0; i < sizeof(messageSize); i++) {
+        for (int j = 0; j < 8; j++) {
+            int x = pixelId % width;
+            int y = pixelId / width;
 
-	for (int messageIndex = 0; messageIndex < messageSize; messageIndex++) {
-    	character = 0;
-    	for(int i = 0; i < 8; i++){
-			
-			int x = pixelId % width;
-			int y = pixelId / width;
-			
-			ebmpBYTE* byte;
+            ebmpBYTE *byte;
+            RGBApixel pixel = image.GetPixel(x, y);
 
-			RGBApixel pixel = image.GetPixel(x, y);
+            int component = distributionComponent(rg);
 
-			int component = distributionComponent(rg);
+            switch (component) {
+            case 0:
+                byte = &pixel.Red;
+                break;
+            case 1:
+                byte = &pixel.Green;
+                break;
+            case 2:
+                byte = &pixel.Blue;
+                break;
+            }
+
+            int bitPosition = distributionBit(rg);
+            unsigned bitMessage = extract_bits(*byte, bitPosition, 1);
+            messageSize = set_bits(messageSize, i * 8 + j, 1, static_cast<uint32_t>(bitMessage));
 			
-			switch (component) {
-			
-				case 0:
-					byte = &pixel.Red;
-					break;
-					
-				case 1:
-					byte = &pixel.Green;
-					break;
-				
-				case 2:
-					byte = &pixel.Blue;
-					break;
-			}
-			
-			int bitPosition = distributionBit(rg);
-			
-			unsigned bitMessage = extract_bits(*byte, bitPosition, 1);
-			cout << bitMessage;
-			
-			character = set_bits(character, i, 1, static_cast<char>(bitMessage));
-			
-			pixelId++;
-    	}
-    	message += character;
-	}
-	cout << endl;
-	return message;
+            pixelId++;
+        }
+    }
+
+    for (int messageIndex = 0; messageIndex < messageSize; messageIndex++) {
+        character = 0;
+        for (int i = 0; i < 8; i++) {
+            int x = pixelId % width;
+            int y = pixelId / width;
+
+            ebmpBYTE *byte;
+            RGBApixel pixel = image.GetPixel(x, y);
+
+            int component = distributionComponent(rg);
+
+            switch (component) {
+            case 0:
+                byte = &pixel.Red;
+                break;
+            case 1:
+                byte = &pixel.Green;
+                break;
+            case 2:
+                byte = &pixel.Blue;
+                break;
+            }
+
+            int bitPosition = distributionBit(rg);
+            unsigned bitMessage = extract_bits(*byte, bitPosition, 1);
+            character = set_bits(character, i, 1, static_cast<char>(bitMessage));
+            
+            pixelId++;
+        }
+        message += character;
+    }
+
+    return message;
 }
-
 
 
 int main() {
@@ -193,7 +233,7 @@ int main() {
     }
 
 
-	string teste = showMessage(seed, image, message.size());
+	string teste = showMessage(seed, image);
 	cout << teste;
 
 	return 0;
